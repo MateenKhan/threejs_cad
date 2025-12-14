@@ -15,9 +15,12 @@ const INITIAL_OBJECTS: SceneObject[] = [
     id: '1',
     name: 'Plank',
     type: ShapeType.BOX,
-    // Positioned so the corner starts at 0,0,0 (center = half dimensions)
-    position: { x: 0.2286, y: 0.1524, z: 0.009 },
-    rotation: { x: 0, y: 0, z: 0 },
+    // Positioned so the corner starts at 0,0,0 relative to the Sheet's origin
+    // X: Center at half width (0.4572 / 2)
+    // Y: Sheet height (0.018) + Half thickness (0.018 / 2) = 0.027. Sits exactly on top.
+    // Z: Center at half depth (0.3048 / 2). Depth comes from local Y due to 90deg rotation.
+    position: { x: 0.2286, y: 0.027, z: 0.1524 },
+    rotation: { x: Math.PI / 2, y: 0, z: 0 },
     // 1.5ft = 0.4572m, 1ft = 0.3048m, 18mm = 0.018m
     scale: { x: 0.4572, y: 0.3048, z: 0.018 },
     color: '#8b5a2b',
