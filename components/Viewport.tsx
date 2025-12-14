@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, TransformControls, Grid, Environment, GizmoHelper, GizmoViewport, ContactShadows, Html, Text, Center } from '@react-three/drei';
 import * as THREE from 'three';
-import { SceneObject, ShapeType, TransformMode, UnitType } from '../types';
+import { SceneObject, ShapeType, TransformMode, UnitType, MaterialType } from '../types';
 
 interface ViewportProps {
   objects: SceneObject[];
@@ -113,13 +113,63 @@ const SceneItem: React.FC<SceneItemProps> = ({
     }
   };
 
-  const material = (
-    <meshStandardMaterial 
-        color={object.color} 
-        roughness={0.3} 
-        metalness={0.2}
-    />
-  );
+  const renderMaterial = () => {
+    const commonProps = {
+      color: object.color,
+    };
+
+    switch (object.materialType) {
+      case MaterialType.METAL:
+        return (
+          <meshStandardMaterial 
+            {...commonProps}
+            metalness={1.0}
+            roughness={0.2}
+            envMapIntensity={1.0}
+          />
+        );
+      case MaterialType.GLASS:
+        return (
+          <meshPhysicalMaterial 
+            {...commonProps}
+            metalness={0.0}
+            roughness={0.1}
+            transmission={0.9} // Glass-like transparency
+            thickness={1.5}    // Refraction volume
+            envMapIntensity={1.0}
+            transparent
+            opacity={1}
+          />
+        );
+      case MaterialType.WOOD:
+        // Simulating wood with properties since we aren't loading textures
+        return (
+          <meshStandardMaterial 
+            {...commonProps}
+            metalness={0.0}
+            roughness={0.8}
+            envMapIntensity={0.5}
+          />
+        );
+      case MaterialType.PLASTIC:
+        return (
+          <meshStandardMaterial 
+            {...commonProps}
+            metalness={0.1}
+            roughness={0.5}
+            envMapIntensity={0.8}
+          />
+        );
+      default: // STANDARD
+        return (
+          <meshStandardMaterial 
+            {...commonProps}
+            metalness={0.2}
+            roughness={0.3}
+          />
+        );
+    }
+  };
 
   const rotationTooltip = (
     <Html position={[0, 1.5, 0]} center className="pointer-events-none select-none z-20">
@@ -236,7 +286,7 @@ const SceneItem: React.FC<SceneItemProps> = ({
         }}
       >
         {renderGeometry()}
-        {material}
+        {renderMaterial()}
         {commonElements}
       </mesh>
     </>

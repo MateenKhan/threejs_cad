@@ -4,7 +4,7 @@ import { Viewport } from './components/Viewport';
 import { Inspector } from './components/Inspector';
 import { Toolbar } from './components/Toolbar';
 import { AIPrompt } from './components/AIPrompt';
-import { SceneObject, ShapeType, TransformMode, UnitType } from './types';
+import { SceneObject, ShapeType, TransformMode, UnitType, MaterialType } from './types';
 import { generateSceneFromPrompt } from './services/geminiService';
 
 // Helper to generate simple random IDs
@@ -13,13 +13,14 @@ const generateId = () => Math.random().toString(36).substr(2, 9);
 const INITIAL_OBJECTS: SceneObject[] = [
   {
     id: '1',
-    name: 'Plan',
+    name: 'Plank',
     type: ShapeType.BOX,
-    position: { x: 0, y: 0.5, z: 0 },
+    position: { x: 0, y: 0.1614, z: 0 },
     rotation: { x: 0, y: 0, z: 0 },
     // 1.5ft = 0.4572m, 1ft = 0.3048m, 18mm = 0.018m
     scale: { x: 0.4572, y: 0.3048, z: 0.018 },
-    color: '#4299e1',
+    color: '#8b5a2b',
+    materialType: MaterialType.WOOD,
     visible: true
   },
   {
@@ -31,6 +32,7 @@ const INITIAL_OBJECTS: SceneObject[] = [
     // 8ft = 2.4384m, 4ft = 1.2192m, 18mm = 0.018m
     scale: { x: 2.4384, y: 1.2192, z: 0.018 },
     color: '#2d3748',
+    materialType: MaterialType.STANDARD,
     visible: true
   }
 ];
@@ -50,14 +52,31 @@ const App: React.FC = () => {
   }, []);
 
   const handleAddObject = (type: ShapeType) => {
-    // Default scale
+    // Default values
     let scale = { x: 1, y: 1, z: 1 };
+    let position = { x: 0, y: 1, z: 0 };
     let extraProps: Partial<SceneObject> = {};
 
     // Custom defaults for specific shapes
     if (type === ShapeType.BOX) {
       // 1.5ft = 0.4572m, 1ft = 0.3048m, 18mm = 0.018m
       scale = { x: 0.4572, y: 0.3048, z: 0.018 };
+      
+      const sheet = objects.find(o => o.name === 'Sheet');
+      if (sheet) {
+        // Calculate Y to sit exactly on top of the sheet
+        const sheetHalfThickness = sheet.scale.z / 2;
+        const boxHalfHeight = scale.y / 2;
+        
+        position = { 
+          x: sheet.position.x, 
+          y: sheet.position.y + sheetHalfThickness + boxHalfHeight, 
+          z: sheet.position.z 
+        };
+      } else {
+        // Fallback if sheet is deleted: place on ground
+        position = { x: 0, y: scale.y / 2, z: 0 };
+      }
     } else if (type === ShapeType.TEXT) {
       extraProps = { text: 'Text' };
       scale = { x: 1, y: 1, z: 0.2 }; // Give text some default size
@@ -69,10 +88,11 @@ const App: React.FC = () => {
       id: generateId(),
       name: `New ${type.toLowerCase()}`,
       type,
-      position: { x: 0, y: 1, z: 0 },
+      position,
       rotation: { x: 0, y: 0, z: 0 },
       scale: scale,
       color: '#ffffff',
+      materialType: MaterialType.STANDARD,
       visible: true,
       ...extraProps
     };
@@ -123,8 +143,12 @@ const App: React.FC = () => {
     try {
       setIsGenerating(true);
       const newObjects = await generateSceneFromPrompt(prompt);
-      // Append new objects to current scene
-      setObjects((prev) => [...prev, ...newObjects]);
+      // Append new objects to current scene, adding default material since API doesn't return it
+      const objectsWithMaterial = newObjects.map(obj => ({
+        ...obj,
+        materialType: MaterialType.STANDARD
+      }));
+      setObjects((prev) => [...prev, ...objectsWithMaterial]);
       
       // Auto select the first generated object if any
       if (newObjects.length > 0) {

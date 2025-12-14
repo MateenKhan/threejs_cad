@@ -1,5 +1,5 @@
 import React from 'react';
-import { SceneObject, ShapeType, UnitType } from '../types';
+import { SceneObject, ShapeType, UnitType, MaterialType } from '../types';
 
 interface InspectorProps {
   object: SceneObject | null;
@@ -166,8 +166,39 @@ export const Inspector: React.FC<InspectorProps> = ({ object, onUpdate, unit }) 
         
         <div className="h-px bg-gray-800 my-2" />
 
-        {/* Material */}
+        {/* Material & Appearance */}
         <div>
+          <label className="text-xs text-gray-500 block mb-2">Theme</label>
+          <div className="grid grid-cols-2 gap-2 mb-4">
+            {Object.values(MaterialType).map((type) => (
+              <button
+                key={type}
+                onClick={() => {
+                   let newColor = object.color;
+                   // Apply preset colors if user hasn't heavily customized yet or if switching to specific textures
+                   if (type === MaterialType.WOOD) newColor = '#8b5a2b';
+                   if (type === MaterialType.METAL) newColor = '#d1d5db';
+                   if (type === MaterialType.GLASS) newColor = '#ffffff';
+                   if (type === MaterialType.STANDARD) newColor = '#cccccc';
+
+                   onUpdate(object.id, { 
+                     materialType: type,
+                     color: newColor
+                   });
+                }}
+                className={`
+                  text-xs py-2 px-2 rounded border transition-all
+                  ${object.materialType === type 
+                    ? 'bg-blue-600 border-blue-500 text-white' 
+                    : 'bg-gray-800 border-gray-700 text-gray-400 hover:bg-gray-700'
+                  }
+                `}
+              >
+                {type.charAt(0) + type.slice(1).toLowerCase()}
+              </button>
+            ))}
+          </div>
+
           <label className="text-xs text-gray-500 block mb-2">Color</label>
           <div className="flex gap-2">
             <input 
@@ -180,7 +211,7 @@ export const Inspector: React.FC<InspectorProps> = ({ object, onUpdate, unit }) 
               type="text"
               value={object.color}
               onChange={(e) => onUpdate(object.id, { color: e.target.value })}
-              className="flex-1 bg-gray-800 text-white text-xs px-2 py-1 rounded focus:outline-none uppercase"
+              className="flex-1 bg-gray-800 text-white text-xs px-2 py-1 rounded focus:outline-none uppercase border border-gray-700 focus:border-blue-500"
             />
           </div>
         </div>

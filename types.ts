@@ -1,3 +1,4 @@
+
 export enum ShapeType {
   BOX = 'BOX',
   SPHERE = 'SPHERE',
@@ -22,6 +23,14 @@ export enum UnitType {
   FOOT = 'ft'
 }
 
+export enum MaterialType {
+  STANDARD = 'STANDARD',
+  METAL = 'METAL',
+  WOOD = 'WOOD',
+  GLASS = 'GLASS',
+  PLASTIC = 'PLASTIC'
+}
+
 export interface Vec3 {
   x: number;
   y: number;
@@ -36,6 +45,7 @@ export interface SceneObject {
   rotation: Vec3;
   scale: Vec3;
   color: string;
+  materialType: MaterialType;
   visible: boolean;
   text?: string;
 }
