@@ -1,0 +1,5 @@
+{
+  "name": "Nebula 3D Editor",
+  "description": "A professional-grade, AI-powered 3D scene editor built with React, Three.js, and Tailwind CSS. Features real-time manipulation, object hierarchy, and generative AI scene creation using Gemini.",
+  "requestFramePermissions": []
+}
