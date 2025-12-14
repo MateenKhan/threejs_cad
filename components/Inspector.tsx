@@ -1,4 +1,5 @@
 import React from 'react';
+import { MapPin } from 'lucide-react';
 import { SceneObject, ShapeType, UnitType, MaterialType } from '../types';
 
 interface InspectorProps {
@@ -26,13 +27,15 @@ const VectorInput = ({
   value, 
   onChange, 
   unit,
-  step
+  step,
+  icon: Icon
 }: { 
   label: string; 
   value: { x: number; y: number; z: number }; 
   onChange: (val: { x: number; y: number; z: number }) => void;
   unit: UnitType;
   step?: number;
+  icon?: React.ElementType;
 }) => {
   const factor = CONVERSION_FACTORS[unit];
   const effectiveStep = step || STEP_SIZES[unit];
@@ -46,7 +49,10 @@ const VectorInput = ({
   return (
     <div className="mb-4">
       <div className="flex justify-between items-center mb-1">
-        <div className="text-xs text-gray-500 capitalize">{label}</div>
+        <div className="flex items-center gap-1.5 text-xs text-gray-500 capitalize">
+           {Icon && <Icon size={12} />}
+           {label}
+        </div>
         <div className="text-[10px] text-gray-600 uppercase font-mono">{unit}</div>
       </div>
       <div className="grid grid-cols-3 gap-2">
@@ -122,7 +128,8 @@ export const Inspector: React.FC<InspectorProps> = ({ object, onUpdate, unit }) 
 
         {/* Transforms */}
         <VectorInput 
-          label="Position" 
+          label="Coordinates" 
+          icon={MapPin}
           value={object.position} 
           onChange={(val) => onUpdate(object.id, { position: val })} 
           unit={unit}

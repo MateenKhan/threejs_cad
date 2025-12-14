@@ -15,7 +15,8 @@ const INITIAL_OBJECTS: SceneObject[] = [
     id: '1',
     name: 'Plank',
     type: ShapeType.BOX,
-    position: { x: 0, y: 0.1614, z: 0 },
+    // Positioned so the corner starts at 0,0,0 (center = half dimensions)
+    position: { x: 0.2286, y: 0.1524, z: 0.009 },
     rotation: { x: 0, y: 0, z: 0 },
     // 1.5ft = 0.4572m, 1ft = 0.3048m, 18mm = 0.018m
     scale: { x: 0.4572, y: 0.3048, z: 0.018 },
@@ -27,7 +28,11 @@ const INITIAL_OBJECTS: SceneObject[] = [
     id: '2',
     name: 'Sheet',
     type: ShapeType.BOX,
-    position: { x: 0, y: 0, z: 0 },
+    // Positioned so the corner starts at 0,0,0
+    // Width (X) = 2.4384 => Center X = 1.2192
+    // Height (Y local -> Z world) = 1.2192 => Center Z = 0.6096
+    // Depth (Z local -> Y world) = 0.018 => Center Y = 0.009
+    position: { x: 1.2192, y: 0.009, z: 0.6096 },
     rotation: { x: -Math.PI / 2, y: 0, z: 0 },
     // 8ft = 2.4384m, 4ft = 1.2192m, 18mm = 0.018m
     scale: { x: 2.4384, y: 1.2192, z: 0.018 },
@@ -127,6 +132,7 @@ const App: React.FC = () => {
       const sheet = objects.find(o => o.name === 'Sheet');
       if (sheet) {
         // Calculate Y to sit exactly on top of the sheet
+        // We need to account for the fact that positions are now centers
         const sheetHalfThickness = sheet.scale.z / 2;
         const boxHalfHeight = scale.y / 2;
         
