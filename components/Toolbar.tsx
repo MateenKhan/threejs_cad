@@ -1,5 +1,5 @@
 import React from 'react';
-import { Move, RotateCw, Scaling, Settings2 } from 'lucide-react';
+import { Move, RotateCw, Scaling, Settings2, Ruler } from 'lucide-react';
 import { TransformMode, UnitType } from '../types';
 
 interface ToolbarProps {
@@ -7,9 +7,18 @@ interface ToolbarProps {
   setTransformMode: (mode: TransformMode) => void;
   unit: UnitType;
   setUnit: (unit: UnitType) => void;
+  showDimensions: boolean;
+  setShowDimensions: (show: boolean) => void;
 }
 
-export const Toolbar: React.FC<ToolbarProps> = ({ transformMode, setTransformMode, unit, setUnit }) => {
+export const Toolbar: React.FC<ToolbarProps> = ({ 
+  transformMode, 
+  setTransformMode, 
+  unit, 
+  setUnit,
+  showDimensions,
+  setShowDimensions
+}) => {
   const tools = [
     { mode: TransformMode.TRANSLATE, icon: Move, label: 'Translate' },
     { mode: TransformMode.ROTATE, icon: RotateCw, label: 'Rotate' },
@@ -36,6 +45,22 @@ export const Toolbar: React.FC<ToolbarProps> = ({ transformMode, setTransformMod
             )}
           </button>
         ))}
+
+        <div className="w-px bg-gray-700 mx-1 my-1" />
+
+        <button
+          onClick={() => setShowDimensions(!showDimensions)}
+          className={`
+            p-2 rounded text-gray-300 hover:text-white hover:bg-gray-700 transition-colors relative group
+            ${showDimensions ? 'bg-blue-600/20 text-blue-400' : ''}
+          `}
+          title="Show Dimensions"
+        >
+          <Ruler size={18} />
+          {showDimensions && (
+             <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-blue-400 rounded-full" />
+          )}
+        </button>
       </div>
 
       {/* Unit Selector */}

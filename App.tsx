@@ -38,6 +38,7 @@ const App: React.FC = () => {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [transformMode, setTransformMode] = useState<TransformMode>(TransformMode.TRANSLATE);
   const [unit, setUnit] = useState<UnitType>(UnitType.METER);
+  const [showDimensions, setShowDimensions] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
 
   // --- Actions ---
@@ -142,6 +143,8 @@ const App: React.FC = () => {
           setTransformMode={setTransformMode}
           unit={unit}
           setUnit={setUnit}
+          showDimensions={showDimensions}
+          setShowDimensions={setShowDimensions}
         />
         
         <Viewport 
@@ -150,6 +153,8 @@ const App: React.FC = () => {
           transformMode={transformMode}
           onSelect={handleSelect}
           onUpdate={handleUpdateObject}
+          showDimensions={showDimensions}
+          unit={unit}
         />
 
         <AIPrompt 

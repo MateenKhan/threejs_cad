@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { Canvas } from '@react-three/fiber';
-import { OrbitControls, TransformControls, Grid, Environment, GizmoHelper, GizmoViewport, ContactShadows } from '@react-three/drei';
+import { OrbitControls, TransformControls, Grid, Environment, GizmoHelper, GizmoViewport, ContactShadows, Html } from '@react-three/drei';
 import * as THREE from 'three';
-import { SceneObject, ShapeType, TransformMode } from '../types';
+import { SceneObject, ShapeType, TransformMode, UnitType } from '../types';
 
 interface ViewportProps {
   objects: SceneObject[];
@@ -10,6 +10,8 @@ interface ViewportProps {
   transformMode: TransformMode;
   onSelect: (id: string | null) => void;
   onUpdate: (id: string, updates: Partial<SceneObject>) => void;
+  showDimensions: boolean;
+  unit: UnitType;
 }
 
 interface SceneItemProps {
@@ -18,14 +20,30 @@ interface SceneItemProps {
   onSelect: () => void;
   transformMode: TransformMode;
   onUpdate: (id: string, updates: Partial<SceneObject>) => void;
+  showDimensions: boolean;
+  unit: UnitType;
 }
+
+const CONVERSION_FACTORS = {
+  [UnitType.METER]: 1,
+  [UnitType.MILLIMETER]: 1000,
+  [UnitType.INCH]: 39.3701,
+  [UnitType.FOOT]: 3.28084
+};
+
+const formatDim = (val: number, unit: UnitType) => {
+  const factor = CONVERSION_FACTORS[unit];
+  return (val * factor).toFixed(2) + unit;
+};
 
 const SceneItem: React.FC<SceneItemProps> = ({ 
   object, 
   isSelected, 
   onSelect, 
   transformMode, 
-  onUpdate 
+  onUpdate,
+  showDimensions,
+  unit
 }) => {
   const [mesh, setMesh] = useState<THREE.Mesh | null>(null);
 
@@ -79,6 +97,16 @@ const SceneItem: React.FC<SceneItemProps> = ({
             roughness={0.3} 
             metalness={0.2}
         />
+        
+        {isSelected && showDimensions && (
+          <Html position={[0, 1.2, 0]} center className="pointer-events-none select-none z-0">
+             <div className="bg-gray-900/90 text-gray-200 text-[10px] p-2 rounded border border-gray-700 shadow-xl backdrop-blur-sm whitespace-nowrap font-mono leading-tight">
+               <div className="flex justify-between gap-3"><span className="text-red-400 font-bold">X</span> <span>{formatDim(object.scale.x, unit)}</span></div>
+               <div className="flex justify-between gap-3"><span className="text-green-400 font-bold">Y</span> <span>{formatDim(object.scale.y, unit)}</span></div>
+               <div className="flex justify-between gap-3"><span className="text-blue-400 font-bold">Z</span> <span>{formatDim(object.scale.z, unit)}</span></div>
+             </div>
+          </Html>
+        )}
       </mesh>
     </>
   );
@@ -89,7 +117,9 @@ export const Viewport: React.FC<ViewportProps> = ({
   selectedId,
   transformMode,
   onSelect,
-  onUpdate
+  onUpdate,
+  showDimensions,
+  unit
 }) => {
   return (
     <div className="flex-1 h-full bg-gray-950 relative overflow-hidden">
@@ -134,6 +164,8 @@ export const Viewport: React.FC<ViewportProps> = ({
               onSelect={() => onSelect(obj.id)}
               transformMode={transformMode}
               onUpdate={onUpdate}
+              showDimensions={showDimensions}
+              unit={unit}
             />
           ))}
         </group>
