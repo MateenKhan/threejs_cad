@@ -1,5 +1,5 @@
 import React from 'react';
-import { Move, RotateCw, Scaling, Settings2, Ruler, Magnet, Undo, Redo, Crosshair } from 'lucide-react';
+import { Move, RotateCw, Scaling, Settings2, Ruler, Magnet, Undo, Redo, Crosshair, MapPin } from 'lucide-react';
 import { TransformMode, UnitType } from '../types';
 
 interface ToolbarProps {
@@ -11,6 +11,8 @@ interface ToolbarProps {
   setShowDimensions: (show: boolean) => void;
   showOrigin: boolean;
   setShowOrigin: (show: boolean) => void;
+  showCoordinates: boolean;
+  setShowCoordinates: (show: boolean) => void;
   snapEnabled?: boolean;
   setSnapEnabled?: (enabled: boolean) => void;
   onUndo: () => void;
@@ -28,6 +30,8 @@ export const Toolbar: React.FC<ToolbarProps> = ({
   setShowDimensions,
   showOrigin,
   setShowOrigin,
+  showCoordinates,
+  setShowCoordinates,
   snapEnabled = false,
   setSnapEnabled,
   onUndo,
@@ -117,6 +121,20 @@ export const Toolbar: React.FC<ToolbarProps> = ({
         >
           <Crosshair size={18} />
           {showOrigin && (
+             <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-blue-400 rounded-full" />
+          )}
+        </button>
+
+        <button
+          onClick={() => setShowCoordinates(!showCoordinates)}
+          className={`
+            p-2 rounded text-gray-300 hover:text-white hover:bg-gray-700 transition-colors relative group
+            ${showCoordinates ? 'bg-blue-600/20 text-blue-400' : ''}
+          `}
+          title="Show Coordinates"
+        >
+          <MapPin size={18} />
+          {showCoordinates && (
              <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-blue-400 rounded-full" />
           )}
         </button>

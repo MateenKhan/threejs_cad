@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, TransformControls, Grid, Environment, GizmoHelper, GizmoViewport, ContactShadows, Html, Text, Center } from '@react-three/drei';
 import * as THREE from 'three';
@@ -12,6 +12,7 @@ interface ViewportProps {
   onUpdate: (id: string, updates: Partial<SceneObject>) => void;
   showDimensions: boolean;
   showOrigin: boolean;
+  showCoordinates: boolean;
   unit: UnitType;
   snapEnabled?: boolean;
 }
@@ -23,6 +24,7 @@ interface SceneItemProps {
   transformMode: TransformMode;
   onUpdate: (id: string, updates: Partial<SceneObject>) => void;
   showDimensions: boolean;
+  showCoordinates: boolean;
   unit: UnitType;
   allObjects: SceneObject[];
   snapEnabled: boolean;
@@ -37,7 +39,7 @@ const CONVERSION_FACTORS = {
 
 const formatDim = (val: number, unit: UnitType) => {
   const factor = CONVERSION_FACTORS[unit];
-  return (val * factor).toFixed(2) + unit;
+  return (val * factor).toFixed(2);
 };
 
 // Heart Shape Generator
@@ -63,6 +65,7 @@ const SceneItem: React.FC<SceneItemProps> = ({
   transformMode, 
   onUpdate,
   showDimensions,
+  showCoordinates,
   unit,
   allObjects,
   snapEnabled
@@ -70,7 +73,15 @@ const SceneItem: React.FC<SceneItemProps> = ({
   const [mesh, setMesh] = useState<THREE.Mesh | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [liveRotation, setLiveRotation] = useState({ x: 0, y: 0, z: 0 });
+  const [livePosition, setLivePosition] = useState({ x: 0, y: 0, z: 0 });
   const heartShape = useHeartShape();
+
+  // Sync live position with object position when not dragging (e.g. undo/redo)
+  useEffect(() => {
+    if (!isDragging) {
+      setLivePosition(object.position);
+    }
+  }, [object.position, isDragging]);
 
   const handleTransformStart = () => setIsDragging(true);
   
@@ -83,6 +94,8 @@ const SceneItem: React.FC<SceneItemProps> = ({
         rotation: { x: rotation.x, y: rotation.y, z: rotation.z },
         scale: { x: scale.x, y: scale.y, z: scale.z }
       });
+      // Ensure live position is exactly what was saved
+      setLivePosition({ x: position.x, y: position.y, z: position.z });
     }
   };
 
@@ -91,62 +104,46 @@ const SceneItem: React.FC<SceneItemProps> = ({
       if (transformMode === TransformMode.ROTATE) {
         setLiveRotation({ x: mesh.rotation.x, y: mesh.rotation.y, z: mesh.rotation.z });
       }
+      
+      // Update live position for the label during drag
+      setLivePosition({ x: mesh.position.x, y: mesh.position.y, z: mesh.position.z });
 
       // Magnetic Snap Logic
       if (snapEnabled && transformMode === TransformMode.TRANSLATE && isDragging) {
          const snapThreshold = 0.25;
          const currentPos = new THREE.Vector3().copy(mesh.position);
-         const currentBox = new THREE.Box3().setFromObject(mesh);
          
-         let snapped = false;
-
          for (const other of allObjects) {
            if (other.id === object.id || !other.visible) continue;
            
-           // Simple approach: calculate bounding boxes and see if faces are close
-           // For this demo, we'll snap positions if they are very close to standard alignments
-           // A full physics bounding box snap is complex, so we'll do center-distance snapping for now
-           // or basic face alignment if axes aligned.
-           
-           // Let's implement a simple "snap to nearest 0.5m grid" or snap to other object center for simplicity 
-           // if really close.
-           
-           // Better: Snap to other object's bounds (Face Snapping)
-           // We need the other object's geometry metrics.
-           // Since we have the data model, we can approximate.
-           
            const dist = new THREE.Vector3(other.position.x, other.position.y, other.position.z).distanceTo(currentPos);
            if (dist < (Math.max(object.scale.x, other.scale.x) + snapThreshold) ) {
-              // Check alignment axes
               // Snap X
               const combinedHalfWidthX = (object.scale.x + other.scale.x) / 2;
               if (Math.abs(currentPos.x - other.position.x - combinedHalfWidthX) < snapThreshold) {
                   mesh.position.x = other.position.x + combinedHalfWidthX;
-                  snapped = true;
               } else if (Math.abs(currentPos.x - other.position.x + combinedHalfWidthX) < snapThreshold) {
                   mesh.position.x = other.position.x - combinedHalfWidthX;
-                  snapped = true;
               }
 
               // Snap Y
               const combinedHalfWidthY = (object.scale.y + other.scale.y) / 2;
               if (Math.abs(currentPos.y - other.position.y - combinedHalfWidthY) < snapThreshold) {
                   mesh.position.y = other.position.y + combinedHalfWidthY;
-                  snapped = true;
               } else if (Math.abs(currentPos.y - other.position.y + combinedHalfWidthY) < snapThreshold) {
                   mesh.position.y = other.position.y - combinedHalfWidthY;
-                  snapped = true;
               }
 
               // Snap Z
               const combinedHalfWidthZ = (object.scale.z + other.scale.z) / 2;
               if (Math.abs(currentPos.z - other.position.z - combinedHalfWidthZ) < snapThreshold) {
                   mesh.position.z = other.position.z + combinedHalfWidthZ;
-                  snapped = true;
               } else if (Math.abs(currentPos.z - other.position.z + combinedHalfWidthZ) < snapThreshold) {
                   mesh.position.z = other.position.z - combinedHalfWidthZ;
-                  snapped = true;
               }
+              
+              // Update live position after snap so label is correct
+              setLivePosition({ x: mesh.position.x, y: mesh.position.y, z: mesh.position.z });
            }
          }
       }
@@ -282,10 +279,23 @@ const SceneItem: React.FC<SceneItemProps> = ({
       {isSelected && showDimensions && !isDragging && (
         <Html position={[0, 1.2, 0]} center className="pointer-events-none select-none z-0">
            <div className="bg-gray-900/90 text-gray-200 text-[10px] p-2 rounded border border-gray-700 shadow-xl backdrop-blur-sm whitespace-nowrap font-mono leading-tight">
-             <div className="flex justify-between gap-3"><span className="text-red-400 font-bold">X</span> <span>{formatDim(object.scale.x, unit)}</span></div>
-             <div className="flex justify-between gap-3"><span className="text-green-400 font-bold">Y</span> <span>{formatDim(object.scale.y, unit)}</span></div>
-             <div className="flex justify-between gap-3"><span className="text-blue-400 font-bold">Z</span> <span>{formatDim(object.scale.z, unit)}</span></div>
+             <div className="flex justify-between gap-3"><span className="text-red-400 font-bold">W</span> <span>{formatDim(object.scale.x, unit)}{unit}</span></div>
+             <div className="flex justify-between gap-3"><span className="text-green-400 font-bold">H</span> <span>{formatDim(object.scale.y, unit)}{unit}</span></div>
+             <div className="flex justify-between gap-3"><span className="text-blue-400 font-bold">D</span> <span>{formatDim(object.scale.z, unit)}{unit}</span></div>
            </div>
+        </Html>
+      )}
+
+      {/* Show Coordinates Label */}
+      {showCoordinates && (
+        <Html position={[0, -0.8, 0]} center className="pointer-events-none select-none z-0">
+          <div className="bg-black/70 text-yellow-400 text-[10px] px-2 py-1 rounded border border-yellow-500/30 backdrop-blur-sm whitespace-nowrap font-mono shadow-md">
+            <div className="flex gap-2">
+               <span>x:{formatDim(livePosition.x, unit)}</span>
+               <span>y:{formatDim(livePosition.y, unit)}</span>
+               <span>z:{formatDim(livePosition.z, unit)}</span>
+            </div>
+          </div>
         </Html>
       )}
     </>
@@ -368,6 +378,7 @@ export const Viewport: React.FC<ViewportProps> = ({
   onUpdate,
   showDimensions,
   showOrigin,
+  showCoordinates,
   unit,
   snapEnabled = false
 }) => {
@@ -417,6 +428,7 @@ export const Viewport: React.FC<ViewportProps> = ({
               transformMode={transformMode}
               onUpdate={onUpdate}
               showDimensions={showDimensions}
+              showCoordinates={showCoordinates}
               unit={unit}
               allObjects={objects}
               snapEnabled={snapEnabled}
