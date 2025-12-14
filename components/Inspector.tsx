@@ -130,17 +130,23 @@ export const Inspector: React.FC<InspectorProps> = ({ object, onUpdate, unit }) 
         
         {/* Rotation */}
         <div className="mb-4">
-          <div className="text-xs text-gray-500 mb-1 capitalize">Rotation (Rad)</div>
+          <div className="text-xs text-gray-500 mb-1 capitalize">Rotation (Degrees)</div>
           <div className="grid grid-cols-3 gap-2">
-            {(['x', 'y', 'z'] as const).map((axis) => (
+            {[
+              { axis: 'x', color: 'text-red-500' },
+              { axis: 'y', color: 'text-green-500' },
+              { axis: 'z', color: 'text-blue-500' }
+            ].map(({ axis, color }) => (
               <div key={axis} className="flex items-center bg-gray-800 rounded px-2 py-1">
-                <span className="text-xs text-gray-500 mr-2 uppercase w-2">{axis}</span>
+                <span className={`text-xs font-bold mr-2 uppercase w-2 ${color}`}>{axis}</span>
                 <input
                   type="number"
-                  step={0.1}
-                  value={Number(object.rotation[axis]).toFixed(2)}
+                  step={1}
+                  value={(object.rotation[axis as 'x'|'y'|'z'] * 180 / Math.PI).toFixed(1)}
                   onChange={(e) => {
-                     const newRot = { ...object.rotation, [axis]: parseFloat(e.target.value) };
+                     const deg = parseFloat(e.target.value);
+                     const rad = deg * Math.PI / 180;
+                     const newRot = { ...object.rotation, [axis]: rad };
                      onUpdate(object.id, { rotation: newRot });
                   }}
                   className="w-full bg-transparent text-xs text-white focus:outline-none"

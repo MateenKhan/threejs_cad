@@ -62,11 +62,30 @@ const SceneItem: React.FC<SceneItemProps> = ({
   unit
 }) => {
   const [mesh, setMesh] = useState<THREE.Mesh | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [liveRotation, setLiveRotation] = useState({ x: 0, y: 0, z: 0 });
   const heartShape = useHeartShape();
 
-  // For geometries that don't support simple scaling args nicely (like ExtrudeGeometry),
-  // we handle scale via the group or mesh scale property, which is passed to the mesh component below.
+  const handleTransformStart = () => setIsDragging(true);
   
+  const handleTransformEnd = () => {
+    setIsDragging(false);
+    if (mesh) {
+      const { position, rotation, scale } = mesh;
+      onUpdate(object.id, {
+        position: { x: position.x, y: position.y, z: position.z },
+        rotation: { x: rotation.x, y: rotation.y, z: rotation.z },
+        scale: { x: scale.x, y: scale.y, z: scale.z }
+      });
+    }
+  };
+
+  const handleTransformChange = () => {
+    if (mesh && transformMode === TransformMode.ROTATE) {
+      setLiveRotation({ x: mesh.rotation.x, y: mesh.rotation.y, z: mesh.rotation.z });
+    }
+  };
+
   const renderGeometry = () => {
     switch (object.type) {
       case ShapeType.BOX:
@@ -102,6 +121,59 @@ const SceneItem: React.FC<SceneItemProps> = ({
     />
   );
 
+  const rotationTooltip = (
+    <Html position={[0, 1.5, 0]} center className="pointer-events-none select-none z-20">
+       <div className="bg-gray-900/90 text-gray-200 text-xs p-2 rounded border border-gray-700 shadow-xl backdrop-blur-sm whitespace-nowrap font-mono">
+         <div className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1">
+           <div className="contents">
+             <span className="text-red-500 font-bold">X</span> 
+             <span>{(liveRotation.x * 180 / Math.PI).toFixed(0)}°</span>
+           </div>
+           <div className="contents">
+             <span className="text-green-500 font-bold">Y</span> 
+             <span>{(liveRotation.y * 180 / Math.PI).toFixed(0)}°</span>
+           </div>
+           <div className="contents">
+              <span className="text-blue-500 font-bold">Z</span> 
+              <span>{(liveRotation.z * 180 / Math.PI).toFixed(0)}°</span>
+           </div>
+         </div>
+       </div>
+    </Html>
+  );
+
+  // Static labels visible when Rotate mode is active (even when not dragging)
+  const staticRotationLabels = (
+    <>
+      <Html position={[1.2, 0, 0]} center className="pointer-events-none select-none z-10">
+        <div className="bg-gray-900/80 text-red-500 font-bold text-xs px-1.5 py-0.5 rounded border border-red-500/50 backdrop-blur-sm">X</div>
+      </Html>
+      <Html position={[0, 1.2, 0]} center className="pointer-events-none select-none z-10">
+        <div className="bg-gray-900/80 text-green-500 font-bold text-xs px-1.5 py-0.5 rounded border border-green-500/50 backdrop-blur-sm">Y</div>
+      </Html>
+      <Html position={[0, 0, 1.2]} center className="pointer-events-none select-none z-10">
+        <div className="bg-gray-900/80 text-blue-500 font-bold text-xs px-1.5 py-0.5 rounded border border-blue-500/50 backdrop-blur-sm">Z</div>
+      </Html>
+    </>
+  );
+
+  const commonElements = (
+    <>
+      {isSelected && transformMode === TransformMode.ROTATE && staticRotationLabels}
+      {isDragging && transformMode === TransformMode.ROTATE && rotationTooltip}
+      
+      {isSelected && showDimensions && !isDragging && (
+        <Html position={[0, 1.2, 0]} center className="pointer-events-none select-none z-0">
+           <div className="bg-gray-900/90 text-gray-200 text-[10px] p-2 rounded border border-gray-700 shadow-xl backdrop-blur-sm whitespace-nowrap font-mono leading-tight">
+             <div className="flex justify-between gap-3"><span className="text-red-400 font-bold">X</span> <span>{formatDim(object.scale.x, unit)}</span></div>
+             <div className="flex justify-between gap-3"><span className="text-green-400 font-bold">Y</span> <span>{formatDim(object.scale.y, unit)}</span></div>
+             <div className="flex justify-between gap-3"><span className="text-blue-400 font-bold">Z</span> <span>{formatDim(object.scale.z, unit)}</span></div>
+           </div>
+        </Html>
+      )}
+    </>
+  );
+
   if (object.type === ShapeType.TEXT) {
     return (
       <>
@@ -109,18 +181,17 @@ const SceneItem: React.FC<SceneItemProps> = ({
           <TransformControls
             object={mesh}
             mode={transformMode}
-            onMouseUp={() => {
-               if (mesh) {
-                  const { position, rotation, scale } = mesh;
-                  onUpdate(object.id, {
-                    position: { x: position.x, y: position.y, z: position.z },
-                    rotation: { x: rotation.x, y: rotation.y, z: rotation.z },
-                    scale: { x: scale.x, y: scale.y, z: scale.z }
-                  });
-               }
-            }}
+            onMouseDown={handleTransformStart}
+            onMouseUp={handleTransformEnd}
+            onObjectChange={handleTransformChange}
           />
         ) : null}
+        
+        {/* Helper Group to attach Html to */}
+        <group position={[object.position.x, object.position.y, object.position.z]} rotation={[object.rotation.x, object.rotation.y, object.rotation.z]}>
+           {commonElements}
+        </group>
+
         <Text
           ref={setMesh as any}
           position={[object.position.x, object.position.y, object.position.z]}
@@ -147,17 +218,9 @@ const SceneItem: React.FC<SceneItemProps> = ({
         <TransformControls
           object={mesh}
           mode={transformMode}
-          onMouseUp={() => {
-             // Sync back the final transform to state when drag ends
-             if (mesh) {
-                const { position, rotation, scale } = mesh;
-                onUpdate(object.id, {
-                  position: { x: position.x, y: position.y, z: position.z },
-                  rotation: { x: rotation.x, y: rotation.y, z: rotation.z },
-                  scale: { x: scale.x, y: scale.y, z: scale.z }
-                });
-             }
-          }}
+          onMouseDown={handleTransformStart}
+          onMouseUp={handleTransformEnd}
+          onObjectChange={handleTransformChange}
         />
       ) : null}
 
@@ -174,16 +237,7 @@ const SceneItem: React.FC<SceneItemProps> = ({
       >
         {renderGeometry()}
         {material}
-        
-        {isSelected && showDimensions && (
-          <Html position={[0, 1.2, 0]} center className="pointer-events-none select-none z-0">
-             <div className="bg-gray-900/90 text-gray-200 text-[10px] p-2 rounded border border-gray-700 shadow-xl backdrop-blur-sm whitespace-nowrap font-mono leading-tight">
-               <div className="flex justify-between gap-3"><span className="text-red-400 font-bold">X</span> <span>{formatDim(object.scale.x, unit)}</span></div>
-               <div className="flex justify-between gap-3"><span className="text-green-400 font-bold">Y</span> <span>{formatDim(object.scale.y, unit)}</span></div>
-               <div className="flex justify-between gap-3"><span className="text-blue-400 font-bold">Z</span> <span>{formatDim(object.scale.z, unit)}</span></div>
-             </div>
-          </Html>
-        )}
+        {commonElements}
       </mesh>
     </>
   );
