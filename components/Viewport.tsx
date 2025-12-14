@@ -388,6 +388,11 @@ export const Viewport: React.FC<ViewportProps> = ({
         shadows
         camera={{ position: [5, 5, 5], fov: 50 }}
         className="touch-none"
+        onPointerMissed={(e) => {
+          if (e.type === 'click') {
+            onSelect(null);
+          }
+        }}
       >
         <color attach="background" args={['#0d1117']} />
         
@@ -417,24 +422,23 @@ export const Viewport: React.FC<ViewportProps> = ({
 
         {showOrigin && <axesHelper args={[5]} />}
         
-        {/* Selection click handler (background) */}
-        <group onPointerMissed={(e) => e.type === 'click' && onSelect(null)}>
-           {objects.map((obj) => (
-            <SceneItem
-              key={obj.id}
-              object={obj}
-              isSelected={selectedId === obj.id}
-              onSelect={() => onSelect(obj.id)}
-              transformMode={transformMode}
-              onUpdate={onUpdate}
-              showDimensions={showDimensions}
-              showCoordinates={showCoordinates}
-              unit={unit}
-              allObjects={objects}
-              snapEnabled={snapEnabled}
-            />
-          ))}
-        </group>
+        {/* Render objects directly without a wrapping group for selection handling,
+            as we now handle deselect via Canvas.onPointerMissed */}
+        {objects.map((obj) => (
+          <SceneItem
+            key={obj.id}
+            object={obj}
+            isSelected={selectedId === obj.id}
+            onSelect={() => onSelect(obj.id)}
+            transformMode={transformMode}
+            onUpdate={onUpdate}
+            showDimensions={showDimensions}
+            showCoordinates={showCoordinates}
+            unit={unit}
+            allObjects={objects}
+            snapEnabled={snapEnabled}
+          />
+        ))}
 
         <ContactShadows opacity={0.4} scale={20} blur={2} far={4.5} />
 
