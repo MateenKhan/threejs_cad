@@ -1,5 +1,5 @@
 import React from 'react';
-import { Move, RotateCw, Scaling, Settings2, Ruler, Magnet, Undo, Redo } from 'lucide-react';
+import { Move, RotateCw, Scaling, Settings2, Ruler, Magnet, Undo, Redo, Crosshair } from 'lucide-react';
 import { TransformMode, UnitType } from '../types';
 
 interface ToolbarProps {
@@ -9,6 +9,8 @@ interface ToolbarProps {
   setUnit: (unit: UnitType) => void;
   showDimensions: boolean;
   setShowDimensions: (show: boolean) => void;
+  showOrigin: boolean;
+  setShowOrigin: (show: boolean) => void;
   snapEnabled?: boolean;
   setSnapEnabled?: (enabled: boolean) => void;
   onUndo: () => void;
@@ -24,6 +26,8 @@ export const Toolbar: React.FC<ToolbarProps> = ({
   setUnit,
   showDimensions,
   setShowDimensions,
+  showOrigin,
+  setShowOrigin,
   snapEnabled = false,
   setSnapEnabled,
   onUndo,
@@ -102,6 +106,20 @@ export const Toolbar: React.FC<ToolbarProps> = ({
             )}
           </button>
         )}
+
+        <button
+          onClick={() => setShowOrigin(!showOrigin)}
+          className={`
+            p-2 rounded text-gray-300 hover:text-white hover:bg-gray-700 transition-colors relative group
+            ${showOrigin ? 'bg-blue-600/20 text-blue-400' : ''}
+          `}
+          title="Toggle Origin"
+        >
+          <Crosshair size={18} />
+          {showOrigin && (
+             <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-blue-400 rounded-full" />
+          )}
+        </button>
 
         <button
           onClick={() => setShowDimensions(!showDimensions)}

@@ -11,7 +11,9 @@ interface ViewportProps {
   onSelect: (id: string | null) => void;
   onUpdate: (id: string, updates: Partial<SceneObject>) => void;
   showDimensions: boolean;
+  showOrigin: boolean;
   unit: UnitType;
+  snapEnabled?: boolean;
 }
 
 interface SceneItemProps {
@@ -22,6 +24,8 @@ interface SceneItemProps {
   onUpdate: (id: string, updates: Partial<SceneObject>) => void;
   showDimensions: boolean;
   unit: UnitType;
+  allObjects: SceneObject[];
+  snapEnabled: boolean;
 }
 
 const CONVERSION_FACTORS = {
@@ -59,7 +63,9 @@ const SceneItem: React.FC<SceneItemProps> = ({
   transformMode, 
   onUpdate,
   showDimensions,
-  unit
+  unit,
+  allObjects,
+  snapEnabled
 }) => {
   const [mesh, setMesh] = useState<THREE.Mesh | null>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -81,8 +87,69 @@ const SceneItem: React.FC<SceneItemProps> = ({
   };
 
   const handleTransformChange = () => {
-    if (mesh && transformMode === TransformMode.ROTATE) {
-      setLiveRotation({ x: mesh.rotation.x, y: mesh.rotation.y, z: mesh.rotation.z });
+    if (mesh) {
+      if (transformMode === TransformMode.ROTATE) {
+        setLiveRotation({ x: mesh.rotation.x, y: mesh.rotation.y, z: mesh.rotation.z });
+      }
+
+      // Magnetic Snap Logic
+      if (snapEnabled && transformMode === TransformMode.TRANSLATE && isDragging) {
+         const snapThreshold = 0.25;
+         const currentPos = new THREE.Vector3().copy(mesh.position);
+         const currentBox = new THREE.Box3().setFromObject(mesh);
+         
+         let snapped = false;
+
+         for (const other of allObjects) {
+           if (other.id === object.id || !other.visible) continue;
+           
+           // Simple approach: calculate bounding boxes and see if faces are close
+           // For this demo, we'll snap positions if they are very close to standard alignments
+           // A full physics bounding box snap is complex, so we'll do center-distance snapping for now
+           // or basic face alignment if axes aligned.
+           
+           // Let's implement a simple "snap to nearest 0.5m grid" or snap to other object center for simplicity 
+           // if really close.
+           
+           // Better: Snap to other object's bounds (Face Snapping)
+           // We need the other object's geometry metrics.
+           // Since we have the data model, we can approximate.
+           
+           const dist = new THREE.Vector3(other.position.x, other.position.y, other.position.z).distanceTo(currentPos);
+           if (dist < (Math.max(object.scale.x, other.scale.x) + snapThreshold) ) {
+              // Check alignment axes
+              // Snap X
+              const combinedHalfWidthX = (object.scale.x + other.scale.x) / 2;
+              if (Math.abs(currentPos.x - other.position.x - combinedHalfWidthX) < snapThreshold) {
+                  mesh.position.x = other.position.x + combinedHalfWidthX;
+                  snapped = true;
+              } else if (Math.abs(currentPos.x - other.position.x + combinedHalfWidthX) < snapThreshold) {
+                  mesh.position.x = other.position.x - combinedHalfWidthX;
+                  snapped = true;
+              }
+
+              // Snap Y
+              const combinedHalfWidthY = (object.scale.y + other.scale.y) / 2;
+              if (Math.abs(currentPos.y - other.position.y - combinedHalfWidthY) < snapThreshold) {
+                  mesh.position.y = other.position.y + combinedHalfWidthY;
+                  snapped = true;
+              } else if (Math.abs(currentPos.y - other.position.y + combinedHalfWidthY) < snapThreshold) {
+                  mesh.position.y = other.position.y - combinedHalfWidthY;
+                  snapped = true;
+              }
+
+              // Snap Z
+              const combinedHalfWidthZ = (object.scale.z + other.scale.z) / 2;
+              if (Math.abs(currentPos.z - other.position.z - combinedHalfWidthZ) < snapThreshold) {
+                  mesh.position.z = other.position.z + combinedHalfWidthZ;
+                  snapped = true;
+              } else if (Math.abs(currentPos.z - other.position.z + combinedHalfWidthZ) < snapThreshold) {
+                  mesh.position.z = other.position.z - combinedHalfWidthZ;
+                  snapped = true;
+              }
+           }
+         }
+      }
     }
   };
 
@@ -300,7 +367,9 @@ export const Viewport: React.FC<ViewportProps> = ({
   onSelect,
   onUpdate,
   showDimensions,
-  unit
+  showOrigin,
+  unit,
+  snapEnabled = false
 }) => {
   return (
     <div className="flex-1 h-full bg-gray-950 relative overflow-hidden">
@@ -334,6 +403,8 @@ export const Viewport: React.FC<ViewportProps> = ({
             fadeDistance={25}
             infiniteGrid
         />
+
+        {showOrigin && <axesHelper args={[5]} />}
         
         {/* Selection click handler (background) */}
         <group onPointerMissed={(e) => e.type === 'click' && onSelect(null)}>
@@ -347,6 +418,8 @@ export const Viewport: React.FC<ViewportProps> = ({
               onUpdate={onUpdate}
               showDimensions={showDimensions}
               unit={unit}
+              allObjects={objects}
+              snapEnabled={snapEnabled}
             />
           ))}
         </group>

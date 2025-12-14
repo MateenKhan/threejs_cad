@@ -51,6 +51,7 @@ const App: React.FC = () => {
   const [transformMode, setTransformMode] = useState<TransformMode>(TransformMode.TRANSLATE);
   const [unit, setUnit] = useState<UnitType>(UnitType.INCH);
   const [showDimensions, setShowDimensions] = useState(false);
+  const [showOrigin, setShowOrigin] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [snapEnabled, setSnapEnabled] = useState(false);
 
@@ -249,6 +250,8 @@ const App: React.FC = () => {
           setUnit={setUnit}
           showDimensions={showDimensions}
           setShowDimensions={setShowDimensions}
+          showOrigin={showOrigin}
+          setShowOrigin={setShowOrigin}
           snapEnabled={snapEnabled}
           setSnapEnabled={setSnapEnabled}
           onUndo={handleUndo}
@@ -264,6 +267,7 @@ const App: React.FC = () => {
           onSelect={handleSelect}
           onUpdate={handleUpdateObject}
           showDimensions={showDimensions}
+          showOrigin={showOrigin}
           unit={unit}
           snapEnabled={snapEnabled}
         />
