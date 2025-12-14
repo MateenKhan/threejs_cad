@@ -13,6 +13,13 @@ export enum TransformMode {
   SCALE = 'scale'
 }
 
+export enum UnitType {
+  METER = 'm',
+  MILLIMETER = 'mm',
+  INCH = 'in',
+  FOOT = 'ft'
+}
+
 export interface Vec3 {
   x: number;
   y: number;

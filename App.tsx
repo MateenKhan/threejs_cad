@@ -4,7 +4,7 @@ import { Viewport } from './components/Viewport';
 import { Inspector } from './components/Inspector';
 import { Toolbar } from './components/Toolbar';
 import { AIPrompt } from './components/AIPrompt';
-import { SceneObject, ShapeType, TransformMode } from './types';
+import { SceneObject, ShapeType, TransformMode, UnitType } from './types';
 import { generateSceneFromPrompt } from './services/geminiService';
 
 // Helper to generate simple random IDs
@@ -37,6 +37,7 @@ const App: React.FC = () => {
   const [objects, setObjects] = useState<SceneObject[]>(INITIAL_OBJECTS);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [transformMode, setTransformMode] = useState<TransformMode>(TransformMode.TRANSLATE);
+  const [unit, setUnit] = useState<UnitType>(UnitType.METER);
   const [isGenerating, setIsGenerating] = useState(false);
 
   // --- Actions ---
@@ -65,6 +66,28 @@ const App: React.FC = () => {
     if (selectedId === id) setSelectedId(null);
   };
 
+  const handleDuplicateObject = (id: string) => {
+    const original = objects.find((o) => o.id === id);
+    if (!original) return;
+
+    const newObject: SceneObject = {
+      ...original,
+      id: generateId(),
+      name: `${original.name} (Copy)`,
+      position: { 
+        x: original.position.x + 0.5, 
+        y: original.position.y, 
+        z: original.position.z + 0.5 
+      },
+      // Ensure we deep copy objects if necessary, though simple spreads work for this structure
+      rotation: { ...original.rotation },
+      scale: { ...original.scale }
+    };
+
+    setObjects((prev) => [...prev, newObject]);
+    setSelectedId(newObject.id);
+  };
+
   const handleToggleVisibility = (id: string) => {
     setObjects((prev) => prev.map(obj => 
       obj.id === id ? { ...obj, visible: !obj.visible } : obj
@@ -81,7 +104,7 @@ const App: React.FC = () => {
     try {
       setIsGenerating(true);
       const newObjects = await generateSceneFromPrompt(prompt);
-      // Append new objects to current scene (or replace? Let's append)
+      // Append new objects to current scene
       setObjects((prev) => [...prev, ...newObjects]);
       
       // Auto select the first generated object if any
@@ -106,8 +129,10 @@ const App: React.FC = () => {
         selectedId={selectedId}
         onSelect={handleSelect}
         onAdd={handleAddObject}
+        onDuplicate={handleDuplicateObject}
         onDelete={handleDeleteObject}
         onToggleVisibility={handleToggleVisibility}
+        onUpdate={handleUpdateObject}
       />
 
       {/* Main Viewport Area */}
@@ -115,6 +140,8 @@ const App: React.FC = () => {
         <Toolbar 
           transformMode={transformMode}
           setTransformMode={setTransformMode}
+          unit={unit}
+          setUnit={setUnit}
         />
         
         <Viewport 
@@ -135,6 +162,7 @@ const App: React.FC = () => {
       <Inspector 
         object={selectedObject}
         onUpdate={handleUpdateObject}
+        unit={unit}
       />
     </div>
   );
