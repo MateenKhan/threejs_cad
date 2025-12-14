@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { Sidebar } from './components/Sidebar';
 import { Viewport } from './components/Viewport';
 import { Inspector } from './components/Inspector';
@@ -38,12 +38,72 @@ const INITIAL_OBJECTS: SceneObject[] = [
 ];
 
 const App: React.FC = () => {
-  const [objects, setObjects] = useState<SceneObject[]>(INITIAL_OBJECTS);
+  // History State Management
+  const [history, setHistory] = useState<SceneObject[][]>([INITIAL_OBJECTS]);
+  const [historyIndex, setHistoryIndex] = useState(0);
+  
+  // Derived current objects from history
+  const objects = history[historyIndex];
+  const canUndo = historyIndex > 0;
+  const canRedo = historyIndex < history.length - 1;
+
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [transformMode, setTransformMode] = useState<TransformMode>(TransformMode.TRANSLATE);
   const [unit, setUnit] = useState<UnitType>(UnitType.INCH);
   const [showDimensions, setShowDimensions] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [snapEnabled, setSnapEnabled] = useState(false);
+
+  // --- History Helpers ---
+
+  // Wrapper for state updates that should be recorded in history
+  const setObjectsWithHistory = useCallback((action: React.SetStateAction<SceneObject[]>) => {
+    setHistory(prevHistory => {
+      const currentObjects = prevHistory[historyIndex];
+      const newObjects = typeof action === 'function' 
+        ? (action as (prev: SceneObject[]) => SceneObject[])(currentObjects)
+        : action;
+      
+      // Slice history to current point and append new state
+      const newHistory = prevHistory.slice(0, historyIndex + 1);
+      return [...newHistory, newObjects];
+    });
+    setHistoryIndex(prev => prev + 1);
+  }, [historyIndex]);
+
+  const handleUndo = useCallback(() => {
+    if (canUndo) {
+      setHistoryIndex(prev => prev - 1);
+    }
+  }, [canUndo]);
+
+  const handleRedo = useCallback(() => {
+    if (canRedo) {
+      setHistoryIndex(prev => prev + 1);
+    }
+  }, [canRedo]);
+
+  // Keyboard Shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Undo: Ctrl+Z or Cmd+Z
+      if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+        e.preventDefault();
+        handleUndo();
+      }
+      // Redo: Ctrl+Y, Cmd+Shift+Z, or Ctrl+Shift+Z
+      if (
+        ((e.ctrlKey || e.metaKey) && e.key === 'y') || 
+        ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'z')
+      ) {
+        e.preventDefault();
+        handleRedo();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [handleUndo, handleRedo]);
 
   // --- Actions ---
 
@@ -96,12 +156,13 @@ const App: React.FC = () => {
       visible: true,
       ...extraProps
     };
-    setObjects((prev) => [...prev, newObject]);
+    
+    setObjectsWithHistory((prev) => [...prev, newObject]);
     setSelectedId(newObject.id);
   };
 
   const handleDeleteObject = (id: string) => {
-    setObjects((prev) => prev.filter(o => o.id !== id));
+    setObjectsWithHistory((prev) => prev.filter(o => o.id !== id));
     if (selectedId === id) setSelectedId(null);
   };
 
@@ -123,21 +184,21 @@ const App: React.FC = () => {
       scale: { ...original.scale }
     };
 
-    setObjects((prev) => [...prev, newObject]);
+    setObjectsWithHistory((prev) => [...prev, newObject]);
     setSelectedId(newObject.id);
   };
 
   const handleToggleVisibility = (id: string) => {
-    setObjects((prev) => prev.map(obj => 
+    setObjectsWithHistory((prev) => prev.map(obj => 
       obj.id === id ? { ...obj, visible: !obj.visible } : obj
     ));
   };
 
   const handleUpdateObject = useCallback((id: string, updates: Partial<SceneObject>) => {
-    setObjects((prev) => prev.map(obj => 
+    setObjectsWithHistory((prev) => prev.map(obj => 
       obj.id === id ? { ...obj, ...updates } : obj
     ));
-  }, []);
+  }, [setObjectsWithHistory]);
 
   const handleGenerateScene = async (prompt: string) => {
     try {
@@ -148,7 +209,8 @@ const App: React.FC = () => {
         ...obj,
         materialType: MaterialType.STANDARD
       }));
-      setObjects((prev) => [...prev, ...objectsWithMaterial]);
+      
+      setObjectsWithHistory((prev) => [...prev, ...objectsWithMaterial]);
       
       // Auto select the first generated object if any
       if (newObjects.length > 0) {
@@ -187,6 +249,12 @@ const App: React.FC = () => {
           setUnit={setUnit}
           showDimensions={showDimensions}
           setShowDimensions={setShowDimensions}
+          snapEnabled={snapEnabled}
+          setSnapEnabled={setSnapEnabled}
+          onUndo={handleUndo}
+          onRedo={handleRedo}
+          canUndo={canUndo}
+          canRedo={canRedo}
         />
         
         <Viewport 
@@ -197,6 +265,7 @@ const App: React.FC = () => {
           onUpdate={handleUpdateObject}
           showDimensions={showDimensions}
           unit={unit}
+          snapEnabled={snapEnabled}
         />
 
         <AIPrompt 

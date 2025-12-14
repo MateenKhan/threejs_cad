@@ -1,5 +1,5 @@
 import React from 'react';
-import { Move, RotateCw, Scaling, Settings2, Ruler } from 'lucide-react';
+import { Move, RotateCw, Scaling, Settings2, Ruler, Magnet, Undo, Redo } from 'lucide-react';
 import { TransformMode, UnitType } from '../types';
 
 interface ToolbarProps {
@@ -9,6 +9,12 @@ interface ToolbarProps {
   setUnit: (unit: UnitType) => void;
   showDimensions: boolean;
   setShowDimensions: (show: boolean) => void;
+  snapEnabled?: boolean;
+  setSnapEnabled?: (enabled: boolean) => void;
+  onUndo: () => void;
+  onRedo: () => void;
+  canUndo: boolean;
+  canRedo: boolean;
 }
 
 export const Toolbar: React.FC<ToolbarProps> = ({ 
@@ -17,7 +23,13 @@ export const Toolbar: React.FC<ToolbarProps> = ({
   unit, 
   setUnit,
   showDimensions,
-  setShowDimensions
+  setShowDimensions,
+  snapEnabled = false,
+  setSnapEnabled,
+  onUndo,
+  onRedo,
+  canUndo,
+  canRedo
 }) => {
   const tools = [
     { mode: TransformMode.TRANSLATE, icon: Move, label: 'Translate' },
@@ -27,6 +39,33 @@ export const Toolbar: React.FC<ToolbarProps> = ({
 
   return (
     <div className="absolute top-4 left-1/2 -translate-x-1/2 flex items-center gap-4 z-10">
+      
+      {/* History Controls */}
+      <div className="bg-gray-800/90 backdrop-blur border border-gray-700 rounded-lg p-1 flex gap-1 shadow-xl">
+        <button
+          onClick={onUndo}
+          disabled={!canUndo}
+          className={`
+            p-2 rounded transition-colors
+            ${canUndo ? 'text-gray-300 hover:text-white hover:bg-gray-700' : 'text-gray-600 cursor-not-allowed'}
+          `}
+          title="Undo (Ctrl+Z)"
+        >
+          <Undo size={18} />
+        </button>
+        <button
+          onClick={onRedo}
+          disabled={!canRedo}
+          className={`
+            p-2 rounded transition-colors
+            ${canRedo ? 'text-gray-300 hover:text-white hover:bg-gray-700' : 'text-gray-600 cursor-not-allowed'}
+          `}
+          title="Redo (Ctrl+Y)"
+        >
+          <Redo size={18} />
+        </button>
+      </div>
+
       {/* Tools */}
       <div className="bg-gray-800/90 backdrop-blur border border-gray-700 rounded-lg p-1 flex gap-1 shadow-xl">
         {tools.map((tool) => (
@@ -47,6 +86,22 @@ export const Toolbar: React.FC<ToolbarProps> = ({
         ))}
 
         <div className="w-px bg-gray-700 mx-1 my-1" />
+
+        {setSnapEnabled && (
+          <button
+            onClick={() => setSnapEnabled(!snapEnabled)}
+            className={`
+              p-2 rounded text-gray-300 hover:text-white hover:bg-gray-700 transition-colors relative group
+              ${snapEnabled ? 'bg-blue-600/20 text-blue-400' : ''}
+            `}
+            title="Magnetic Snap"
+          >
+            <Magnet size={18} />
+            {snapEnabled && (
+               <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-blue-400 rounded-full" />
+            )}
+          </button>
+        )}
 
         <button
           onClick={() => setShowDimensions(!showDimensions)}
