@@ -73,10 +73,10 @@ export const Toolbar: React.FC<ToolbarProps> = ({
             onChange={(e) => setUnit(e.target.value as UnitType)}
             className="bg-transparent text-gray-300 text-xs font-medium py-2 pr-2 focus:outline-none cursor-pointer hover:text-white"
          >
-            <option value={UnitType.METER}>Meters (m)</option>
-            <option value={UnitType.MILLIMETER}>Millimeters (mm)</option>
-            <option value={UnitType.INCH}>Inches (in)</option>
-            <option value={UnitType.FOOT}>Feet (ft)</option>
+            <option value={UnitType.METER} className="bg-gray-800 text-white">Meters (m)</option>
+            <option value={UnitType.MILLIMETER} className="bg-gray-800 text-white">Millimeters (mm)</option>
+            <option value={UnitType.INCH} className="bg-gray-800 text-white">Inches (in)</option>
+            <option value={UnitType.FOOT} className="bg-gray-800 text-white">Feet (ft)</option>
          </select>
       </div>
     </div>

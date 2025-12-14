@@ -13,21 +13,23 @@ const generateId = () => Math.random().toString(36).substr(2, 9);
 const INITIAL_OBJECTS: SceneObject[] = [
   {
     id: '1',
-    name: 'Base Cube',
+    name: 'Plan',
     type: ShapeType.BOX,
     position: { x: 0, y: 0.5, z: 0 },
     rotation: { x: 0, y: 0, z: 0 },
-    scale: { x: 1, y: 1, z: 1 },
+    // 1.5ft = 0.4572m, 1ft = 0.3048m, 18mm = 0.018m
+    scale: { x: 0.4572, y: 0.3048, z: 0.018 },
     color: '#4299e1',
     visible: true
   },
   {
     id: '2',
-    name: 'Floor',
-    type: ShapeType.PLANE,
+    name: 'Sheet',
+    type: ShapeType.BOX,
     position: { x: 0, y: 0, z: 0 },
     rotation: { x: -Math.PI / 2, y: 0, z: 0 },
-    scale: { x: 10, y: 10, z: 1 },
+    // 8ft = 2.4384m, 4ft = 1.2192m, 18mm = 0.018m
+    scale: { x: 2.4384, y: 1.2192, z: 0.018 },
     color: '#2d3748',
     visible: true
   }
@@ -37,7 +39,7 @@ const App: React.FC = () => {
   const [objects, setObjects] = useState<SceneObject[]>(INITIAL_OBJECTS);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [transformMode, setTransformMode] = useState<TransformMode>(TransformMode.TRANSLATE);
-  const [unit, setUnit] = useState<UnitType>(UnitType.METER);
+  const [unit, setUnit] = useState<UnitType>(UnitType.INCH);
   const [showDimensions, setShowDimensions] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
 
@@ -48,15 +50,31 @@ const App: React.FC = () => {
   }, []);
 
   const handleAddObject = (type: ShapeType) => {
+    // Default scale
+    let scale = { x: 1, y: 1, z: 1 };
+    let extraProps: Partial<SceneObject> = {};
+
+    // Custom defaults for specific shapes
+    if (type === ShapeType.BOX) {
+      // 1.5ft = 0.4572m, 1ft = 0.3048m, 18mm = 0.018m
+      scale = { x: 0.4572, y: 0.3048, z: 0.018 };
+    } else if (type === ShapeType.TEXT) {
+      extraProps = { text: 'Text' };
+      scale = { x: 1, y: 1, z: 0.2 }; // Give text some default size
+    } else if (type === ShapeType.HEART) {
+       scale = { x: 1, y: 1, z: 0.2 }; // Default heart size
+    }
+
     const newObject: SceneObject = {
       id: generateId(),
       name: `New ${type.toLowerCase()}`,
       type,
       position: { x: 0, y: 1, z: 0 },
       rotation: { x: 0, y: 0, z: 0 },
-      scale: { x: 1, y: 1, z: 1 },
+      scale: scale,
       color: '#ffffff',
-      visible: true
+      visible: true,
+      ...extraProps
     };
     setObjects((prev) => [...prev, newObject]);
     setSelectedId(newObject.id);

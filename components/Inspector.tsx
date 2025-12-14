@@ -1,5 +1,5 @@
 import React from 'react';
-import { SceneObject, UnitType } from '../types';
+import { SceneObject, ShapeType, UnitType } from '../types';
 
 interface InspectorProps {
   object: SceneObject | null;
@@ -104,6 +104,19 @@ export const Inspector: React.FC<InspectorProps> = ({ object, onUpdate, unit }) 
               {object.type}
            </div>
         </div>
+
+        {/* Text specific input */}
+        {object.type === ShapeType.TEXT && (
+          <div>
+             <label className="text-xs text-blue-400 block mb-1 font-medium">Text Content</label>
+             <textarea 
+                value={object.text || ''}
+                onChange={(e) => onUpdate(object.id, { text: e.target.value })}
+                className="w-full bg-gray-800 text-white text-sm px-2 py-2 rounded focus:ring-1 focus:ring-blue-500 focus:outline-none h-20 resize-none border border-gray-700"
+                placeholder="Enter text..."
+             />
+          </div>
+        )}
 
         <div className="h-px bg-gray-800 my-2" />
 

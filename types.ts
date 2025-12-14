@@ -4,7 +4,9 @@ export enum ShapeType {
   CYLINDER = 'CYLINDER',
   TORUS = 'TORUS',
   PLANE = 'PLANE',
-  ICOSAHEDRON = 'ICOSAHEDRON'
+  ICOSAHEDRON = 'ICOSAHEDRON',
+  HEART = 'HEART',
+  TEXT = 'TEXT'
 }
 
 export enum TransformMode {
@@ -35,6 +37,7 @@ export interface SceneObject {
   scale: Vec3;
   color: string;
   visible: boolean;
+  text?: string;
 }
 
 export interface EditorState {

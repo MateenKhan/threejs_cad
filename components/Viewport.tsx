@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Canvas } from '@react-three/fiber';
-import { OrbitControls, TransformControls, Grid, Environment, GizmoHelper, GizmoViewport, ContactShadows, Html } from '@react-three/drei';
+import { OrbitControls, TransformControls, Grid, Environment, GizmoHelper, GizmoViewport, ContactShadows, Html, Text, Center } from '@react-three/drei';
 import * as THREE from 'three';
 import { SceneObject, ShapeType, TransformMode, UnitType } from '../types';
 
@@ -36,6 +36,22 @@ const formatDim = (val: number, unit: UnitType) => {
   return (val * factor).toFixed(2) + unit;
 };
 
+// Heart Shape Generator
+const useHeartShape = () => {
+  return useMemo(() => {
+    const x = 0, y = 0;
+    const shape = new THREE.Shape();
+    shape.moveTo(x + 0.25, y + 0.25);
+    shape.bezierCurveTo(x + 0.25, y + 0.25, x + 0.20, y, x, y);
+    shape.bezierCurveTo(x - 0.30, y, x - 0.30, y + 0.35, x - 0.30, y + 0.35);
+    shape.bezierCurveTo(x - 0.30, y + 0.55, x - 0.10, y + 0.77, x + 0.25, y + 0.95);
+    shape.bezierCurveTo(x + 0.60, y + 0.77, x + 0.80, y + 0.55, x + 0.80, y + 0.35);
+    shape.bezierCurveTo(x + 0.80, y + 0.35, x + 0.80, y, x + 0.50, y);
+    shape.bezierCurveTo(x + 0.35, y, x + 0.25, y + 0.25, x + 0.25, y + 0.25);
+    return shape;
+  }, []);
+};
+
 const SceneItem: React.FC<SceneItemProps> = ({ 
   object, 
   isSelected, 
@@ -46,19 +62,84 @@ const SceneItem: React.FC<SceneItemProps> = ({
   unit
 }) => {
   const [mesh, setMesh] = useState<THREE.Mesh | null>(null);
+  const heartShape = useHeartShape();
 
-  // Sync React state to Three.js ref directly for performance, 
-  // though R3F handles props well, manual transform updates can prevent jitter
-  // But here we rely on props for simplicity in this structure.
-
-  const geometryMap = {
-    [ShapeType.BOX]: <boxGeometry args={[1, 1, 1]} />,
-    [ShapeType.SPHERE]: <sphereGeometry args={[0.5, 32, 32]} />,
-    [ShapeType.CYLINDER]: <cylinderGeometry args={[0.5, 0.5, 1, 32]} />,
-    [ShapeType.TORUS]: <torusGeometry args={[0.5, 0.2, 16, 32]} />,
-    [ShapeType.PLANE]: <planeGeometry args={[1, 1]} />,
-    [ShapeType.ICOSAHEDRON]: <icosahedronGeometry args={[0.5, 0]} />,
+  // For geometries that don't support simple scaling args nicely (like ExtrudeGeometry),
+  // we handle scale via the group or mesh scale property, which is passed to the mesh component below.
+  
+  const renderGeometry = () => {
+    switch (object.type) {
+      case ShapeType.BOX:
+        return <boxGeometry args={[1, 1, 1]} />;
+      case ShapeType.SPHERE:
+        return <sphereGeometry args={[0.5, 32, 32]} />;
+      case ShapeType.CYLINDER:
+        return <cylinderGeometry args={[0.5, 0.5, 1, 32]} />;
+      case ShapeType.TORUS:
+        return <torusGeometry args={[0.5, 0.2, 16, 32]} />;
+      case ShapeType.PLANE:
+        return <planeGeometry args={[1, 1]} />;
+      case ShapeType.ICOSAHEDRON:
+        return <icosahedronGeometry args={[0.5, 0]} />;
+      case ShapeType.HEART:
+        return (
+          <extrudeGeometry 
+            args={[heartShape, { depth: 0.2, bevelEnabled: true, bevelSegments: 2, steps: 2, bevelSize: 0.05, bevelThickness: 0.05 }]} 
+          />
+        );
+      case ShapeType.TEXT:
+         return null; // Handled specially
+      default:
+        return <boxGeometry args={[1, 1, 1]} />;
+    }
   };
+
+  const material = (
+    <meshStandardMaterial 
+        color={object.color} 
+        roughness={0.3} 
+        metalness={0.2}
+    />
+  );
+
+  if (object.type === ShapeType.TEXT) {
+    return (
+      <>
+        {isSelected && mesh ? (
+          <TransformControls
+            object={mesh}
+            mode={transformMode}
+            onMouseUp={() => {
+               if (mesh) {
+                  const { position, rotation, scale } = mesh;
+                  onUpdate(object.id, {
+                    position: { x: position.x, y: position.y, z: position.z },
+                    rotation: { x: rotation.x, y: rotation.y, z: rotation.z },
+                    scale: { x: scale.x, y: scale.y, z: scale.z }
+                  });
+               }
+            }}
+          />
+        ) : null}
+        <Text
+          ref={setMesh as any}
+          position={[object.position.x, object.position.y, object.position.z]}
+          rotation={[object.rotation.x, object.rotation.y, object.rotation.z]}
+          scale={[object.scale.x, object.scale.y, object.scale.z]}
+          color={object.color}
+          fontSize={1}
+          anchorX="center"
+          anchorY="middle"
+          onClick={(e) => {
+            e.stopPropagation();
+            onSelect();
+          }}
+        >
+          {object.text || 'Text'}
+        </Text>
+      </>
+    );
+  }
 
   return (
     <>
@@ -91,12 +172,8 @@ const SceneItem: React.FC<SceneItemProps> = ({
           onSelect();
         }}
       >
-        {geometryMap[object.type]}
-        <meshStandardMaterial 
-            color={object.color} 
-            roughness={0.3} 
-            metalness={0.2}
-        />
+        {renderGeometry()}
+        {material}
         
         {isSelected && showDimensions && (
           <Html position={[0, 1.2, 0]} center className="pointer-events-none select-none z-0">

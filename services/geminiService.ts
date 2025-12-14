@@ -15,7 +15,7 @@ const SCENE_SCHEMA: Schema = {
           name: { type: Type.STRING, description: "A descriptive name for the object" },
           type: { 
             type: Type.STRING, 
-            enum: ["BOX", "SPHERE", "CYLINDER", "TORUS", "PLANE", "ICOSAHEDRON"],
+            enum: ["BOX", "SPHERE", "CYLINDER", "TORUS", "PLANE", "ICOSAHEDRON", "HEART", "TEXT"],
             description: "The geometric shape type"
           },
           position: {
@@ -46,7 +46,8 @@ const SCENE_SCHEMA: Schema = {
             },
             required: ["x", "y", "z"]
           },
-          color: { type: Type.STRING, description: "Hex color code (e.g. #FF0000)" }
+          color: { type: Type.STRING, description: "Hex color code (e.g. #FF0000)" },
+          text: { type: Type.STRING, description: "Content for TEXT objects (optional)" }
         },
         required: ["name", "type", "position", "rotation", "scale", "color"]
       }
@@ -94,7 +95,8 @@ export const generateSceneFromPrompt = async (prompt: string): Promise<SceneObje
       rotation: obj.rotation,
       scale: obj.scale,
       color: obj.color,
-      visible: true
+      visible: true,
+      text: obj.text
     }));
 
     return objects;

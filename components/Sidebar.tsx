@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Box, Circle, Disc, Eye, EyeOff, Trash2, BoxSelect, Square, Copy } from 'lucide-react';
+import { Box, Circle, Disc, Eye, EyeOff, Trash2, BoxSelect, Square, Copy, Heart, Type } from 'lucide-react';
 import { SceneObject, ShapeType } from '../types';
 
 interface SidebarProps {
@@ -19,6 +19,8 @@ const SHAPES = [
   { type: ShapeType.CYLINDER, icon: BoxSelect, label: 'Cylinder' },
   { type: ShapeType.TORUS, icon: Disc, label: 'Torus' },
   { type: ShapeType.PLANE, icon: Square, label: 'Plane' },
+  { type: ShapeType.HEART, icon: Heart, label: 'Heart' },
+  { type: ShapeType.TEXT, icon: Type, label: 'Text' },
 ];
 
 export const Sidebar: React.FC<SidebarProps> = ({
